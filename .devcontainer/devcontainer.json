@@ -1,1 +1,1 @@
-{\n  \"name\": \"Python 3.11 with Tesseract OCR\",\n  \"version\": \"0.1.0\",\n  \"settings\": {\n    \"python.pythonPath\": \"/usr/local/bin/python3.11\"\n  },\n  \"extensions\": [\n    \"ms-python.python\",\n    \"ms-toolsai.jupyter\"\n  ],\n  \"postCreateCommand\": \"apt-get update && apt-get install -y tesseract-ocr\"\n}
+{"name":"DAPE Project","image":"mcr.microsoft.com/devcontainers/python:3.11","postCreateCommand":"sudo apt-get update && sudo apt-get install -y tesseract-ocr && pip install -r requirements.txt"}
