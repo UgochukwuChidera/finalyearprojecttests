@@ -4,14 +4,14 @@ DAPE Pipeline Orchestrator
 Executes the full Differential Analysis and Preprocessing for Extraction
 (DAPE) pipeline as a strictly sequential, module-driven workflow:
 
-  1. Preprocessing       – normalize scanned input image
-  2. Template Alignment  – register completed form to blank template
-  3. Differential Analysis – isolate user-provided input regions
-  4. Field Extraction    – OCR / checkbox detection within masked regions
-  5. Confidence Validation – flag uncertain / semantically invalid fields
-  6. HITL Escalation     – optional human correction of flagged fields
-  7. Output Structuring  – map to semantic keys → canonical JSON
-  8. Export & Audit Log  – write JSON/CSV/XLSX and per-form audit record
+  1. Preprocessing       - normalize scanned input image
+  2. Template Alignment  - register completed form to blank template
+  3. Differential Analysis - isolate user-provided input regions
+  4. Field Extraction    - OCR / checkbox detection within masked regions
+  5. Confidence Validation - flag uncertain / semantically invalid fields
+  6. HITL Escalation     - optional human correction of flagged fields
+  7. Output Structuring  - map to semantic keys → canonical JSON
+  8. Export & Audit Log  - write JSON/CSV/XLSX and per-form audit record
 
 Architectural note
 ------------------
