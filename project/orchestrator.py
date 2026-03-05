@@ -1,24 +1,3 @@
-<<<<<<< ours
-from .preprocessing.io import load_image
-from .preprocessing.grayscale import to_grayscale
-from .preprocessing.baseline_metrics import baseline_metrics
-from .preprocessing.skew_analysis import skew_analysis
-from .preprocessing.illumination import illumination_normalization
-from .preprocessing.binarization import binarization
-from .preprocessing.border_removal import border_removal
-from .preprocessing.structure_prep import structure_prep
-from .preprocessing.fusion import fuse
-
-
-def process_document(image_path, template_size=(2480, 3508)):
-    image, h, w, aspect_ratio = load_image(image_path)
-    gray = to_grayscale(image)
-
-    stats = {
-        "original_width": w,
-        "original_height": h,
-        "aspect_ratio": aspect_ratio
-=======
 """
 DAPE Pipeline Orchestrator
 ==========================
@@ -42,10 +21,9 @@ schema, template definitions) are passed in at construction time and are
 never modified by human corrections or pipeline outputs.
 """
 
-import os
 from pathlib import Path
 
-# ── Preprocessing (existing modules) ──────────────────────────────────────────
+# ── Preprocessing ──────────────────────────────────────────────────────────────
 from .preprocessing.io               import load_image
 from .preprocessing.grayscale        import to_grayscale
 from .preprocessing.baseline_metrics import baseline_metrics
@@ -56,7 +34,7 @@ from .preprocessing.border_removal   import border_removal
 from .preprocessing.structure_prep   import structure_prep
 from .preprocessing.fusion           import fuse
 
-# ── New pipeline stages ────────────────────────────────────────────────────────
+# ── Remaining pipeline stages ─────────────────────────────────────────────────
 from .template_registry               import TemplateRegistry
 from .alignment.aligner               import TemplateAligner
 from .differential.analyzer           import DifferentialAnalyzer
@@ -75,39 +53,37 @@ class DAPEOrchestrator:
 
     Parameters
     ----------
-    registry_path      : path to templates/registry.json
-    output_dir         : directory for exported form outputs
-    log_dir            : directory for audit logs
+    registry_path       : path to templates/registry.json
+    output_dir          : directory for exported form outputs
+    log_dir             : directory for audit logs
     confidence_threshold: fields below this score are flagged for HITL
-    enable_hitl        : set False to skip the human review step
-                         (flagged fields are still recorded in the audit log)
-    hitl_host / port   : address for the Flask review interface
-    tesseract_cmd      : optional explicit path to the Tesseract binary
+    enable_hitl         : set False to skip human review
+    hitl_host / port    : address for the Flask review interface
+    tesseract_cmd       : optional explicit path to the Tesseract binary
     """
 
     def __init__(
         self,
-        registry_path: str       = "templates/registry.json",
-        output_dir: str          = "outputs",
-        log_dir: str             = "logs",
-        confidence_threshold: float = 0.60,
-        enable_hitl: bool        = True,
-        hitl_host: str           = "127.0.0.1",
-        hitl_port: int           = 5050,
-        tesseract_cmd: str | None = None,
+        registry_path:        str        = "templates/registry.json",
+        output_dir:           str        = "outputs",
+        log_dir:              str        = "logs",
+        confidence_threshold: float      = 0.60,
+        enable_hitl:          bool       = True,
+        hitl_host:            str        = "127.0.0.1",
+        hitl_port:            int        = 5050,
+        tesseract_cmd:        str | None = None,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Instantiate all pipeline components
-        self._registry  = TemplateRegistry(registry_path)
-        self._aligner   = TemplateAligner()
-        self._differ    = DifferentialAnalyzer()
-        self._extractor = FieldExtractor(tesseract_cmd=tesseract_cmd)
-        self._validator = ConfidenceValidator(confidence_threshold)
+        self._registry   = TemplateRegistry(registry_path)
+        self._aligner    = TemplateAligner()
+        self._differ     = DifferentialAnalyzer()
+        self._extractor  = FieldExtractor(tesseract_cmd=tesseract_cmd)
+        self._validator  = ConfidenceValidator(confidence_threshold)
         self._escalation = HITLEscalation()
-        self._exporter  = DataExporter()
-        self._logger    = AuditLogger(log_dir)
+        self._exporter   = DataExporter()
+        self._logger     = AuditLogger(log_dir)
 
         self._enable_hitl = enable_hitl
         self._hitl_ui: HITLInterface | None = (
@@ -118,18 +94,12 @@ class DAPEOrchestrator:
 
     def process(
         self,
-        image_path: str,
+        image_path:  str,
         template_id: str,
-        form_id: str | None = None,
+        form_id:     str | None = None,
     ) -> dict:
         """
         Process a single scanned completed form through the full pipeline.
-
-        Parameters
-        ----------
-        image_path  : path to the scanned form image (TIFF, PNG, JPG …)
-        template_id : key in the template registry
-        form_id     : optional identifier; defaults to the image file stem
 
         Returns
         -------
@@ -141,8 +111,8 @@ class DAPEOrchestrator:
           images            : intermediate image dict
         """
         form_id = form_id or Path(image_path).stem
-        stats   = {}
-        images  = {}
+        stats:  dict = {}
+        images: dict = {}
 
         # ── Stage 1 · Preprocessing ────────────────────────────────────────────
         image, h, w, aspect_ratio = load_image(image_path)
@@ -166,16 +136,16 @@ class DAPEOrchestrator:
         stats["fusion_score"] = fuse(stats)
 
         images.update({
-            "gray": gray,
-            "normalized": normalized,
-            "binary": binary,
+            "gray":           gray,
+            "normalized":     normalized,
+            "binary":         binary,
             "cropped_binary": cropped,
         })
 
         # ── Stage 2 · Template Alignment ──────────────────────────────────────
-        template_img    = self._registry.get_template_image(template_id)
-        field_defs      = self._registry.get_field_definitions(template_id)
-        output_schema   = self._registry.get_output_schema(template_id)
+        template_img  = self._registry.get_template_image(template_id)
+        field_defs    = self._registry.get_field_definitions(template_id)
+        output_schema = self._registry.get_output_schema(template_id)
 
         aligned, transform, align_meta = self._aligner.align(gray, template_img)
         stats.update({f"align_{k}": v for k, v in align_meta.items()})
@@ -183,8 +153,10 @@ class DAPEOrchestrator:
 
         # ── Stage 3 · Differential Analysis ───────────────────────────────────
         interaction_mask, diff_meta = self._differ.analyze(aligned, template_img)
-        stats.update({f"diff_{k}": v for k, v in diff_meta.items()
-                      if not hasattr(v, "shape")})  # exclude ndarray values
+        stats.update({
+            f"diff_{k}": v for k, v in diff_meta.items()
+            if not hasattr(v, "shape")   # exclude ndarray values
+        })
         images["interaction_mask"] = interaction_mask
         images["binary_diff"]      = diff_meta["binary_diff"]
 
@@ -201,7 +173,7 @@ class DAPEOrchestrator:
         stats["hitl_flagged_count"] = len(flagged)
 
         if flagged and self._enable_hitl and self._hitl_ui is not None:
-            corrections = self._hitl_ui.run_review(flagged)
+            corrections  = self._hitl_ui.run_review(flagged)
             validated_fields = self._escalation.apply_bulk_corrections(
                 corrections, validated_fields
             )
@@ -210,15 +182,14 @@ class DAPEOrchestrator:
         stats.update({f"esc_{k}": v for k, v in esc_stats.items()})
 
         # ── Stage 7 · Output Structuring ──────────────────────────────────────
-        structurer       = OutputStructurer(output_schema)
+        structurer        = OutputStructurer(output_schema)
         structured_output = structurer.structure(
             validated_fields, form_id, template_id, stats
         )
 
         # ── Stage 8 · Export & Audit Logging ──────────────────────────────────
-        base_path   = str(self.output_dir / form_id)
-        export_paths = self._exporter.export_all(structured_output, base_path)
-
+        base_path      = str(self.output_dir / form_id)
+        export_paths   = self._exporter.export_all(structured_output, base_path)
         audit_log_path = self._logger.log(
             form_id, template_id, stats, validated_fields, export_paths
         )
@@ -239,7 +210,6 @@ class DAPEOrchestrator:
         """
         Process a list of scanned forms against the same template.
 
-        Returns a list of result dicts in the same order as *image_paths*.
         Errors for individual forms are caught and recorded rather than
         aborting the batch.
         """
@@ -264,25 +234,24 @@ class DAPEOrchestrator:
     # ── Helpers ────────────────────────────────────────────────────────────────
 
     def _get_template_size(self, template_id: str) -> tuple[int, int]:
-        """Return (width, height) of the template image without loading it fully."""
+        """Return (width, height) of the template image."""
         import cv2
         entry = self._registry.get_entry(template_id)
         img   = cv2.imread(entry["image_path"], cv2.IMREAD_GRAYSCALE)
         if img is None:
-            return (2480, 3508)  # A4 at 300 DPI fallback
+            return (2480, 3508)   # A4 @ 300 DPI fallback
         h, w = img.shape[:2]
         return (w, h)
 
 
-# ── Legacy compatibility: preserve the original functional API ────────────────
+# ── Legacy compatibility ───────────────────────────────────────────────────────
 
 def process_document(
-    image_path: str,
+    image_path:    str,
     template_size: tuple[int, int] = (2480, 3508),
 ) -> tuple[dict, dict]:
     """
-    Original preprocessing-only entry point (unchanged behaviour).
-    Kept for backward compatibility with existing callers of orchestrator.py.
+    Original preprocessing-only entry point. Kept for backward compatibility.
     """
     image, h, w, aspect_ratio = load_image(image_path)
     gray = to_grayscale(image)
@@ -291,47 +260,26 @@ def process_document(
         "original_width":  w,
         "original_height": h,
         "aspect_ratio":    aspect_ratio,
->>>>>>> theirs
     }
 
     stats.update(baseline_metrics(gray))
     stats.update(skew_analysis(gray))
 
-<<<<<<< ours
-    normalized, illum = illumination_normalization(
-        gray, stats["grayscale_std"]
-    )
-=======
     normalized, illum = illumination_normalization(gray, stats["grayscale_std"])
->>>>>>> theirs
     stats.update(illum)
 
     binary, bin_stats = binarization(normalized)
     stats.update(bin_stats)
 
-<<<<<<< ours
-    cropped, crop_stats = border_removal(
-        binary, stats["threshold_stability"]
-    )
-=======
     cropped, crop_stats = border_removal(binary, stats["threshold_stability"])
->>>>>>> theirs
     stats.update(crop_stats)
 
     stats.update(structure_prep(cropped, template_size))
     stats["fusion_score"] = fuse(stats)
 
     return stats, {
-<<<<<<< ours
-        "gray": gray,
-        "normalized": normalized,
-        "binary": binary,
-        "cropped_binary": cropped
-    }
-=======
         "gray":           gray,
         "normalized":     normalized,
         "binary":         binary,
         "cropped_binary": cropped,
     }
->>>>>>> theirs
